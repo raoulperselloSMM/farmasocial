@@ -1,9 +1,15 @@
 import { Post, Category } from '../types';
+import { db } from './firebase';
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc,
+  serverTimestamp 
+} from 'firebase/firestore';
 
-const POSTS_KEY = 'pharmasocial_posts';
-const CATEGORIES_KEY = 'pharmasocial_categories';
-
-// Initial Mock Data to populate the app on first run
 const INITIAL_CATEGORIES: Category[] = [
   { id: '1', name: 'Prevenzione', color: 'bg-blue-100 text-blue-800' },
   { id: '2', name: 'Cosmetica', color: 'bg-pink-100 text-pink-800' },
@@ -31,54 +37,88 @@ const INITIAL_POSTS: Post[] = [
 ];
 
 export const storageService = {
-  getPosts: (): Post[] => {
-    const data = localStorage.getItem(POSTS_KEY);
-    if (!data) {
-      localStorage.setItem(POSTS_KEY, JSON.stringify(INITIAL_POSTS));
-      return INITIAL_POSTS;
+  getPosts: async (): Promise<Post[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'posts'));
+      if (querySnapshot.empty) {
+        // Initialize with default posts
+        for (const post of INITIAL_POSTS) {
+          await addDoc(collection(db, 'posts'), post);
+        }
+        return INITIAL_POSTS;
+      }
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Post));
+    } catch (error) {
+      console.error('Error getting posts:', error);
+      return [];
     }
-    return JSON.parse(data);
   },
 
-  savePost: (post: Post): Post[] => {
-    const posts = storageService.getPosts();
-    const newPosts = [post, ...posts];
-    localStorage.setItem(POSTS_KEY, JSON.stringify(newPosts));
-    return newPosts;
-  },
-
-  updatePost: (updatedPost: Post): Post[] => {
-    const posts = storageService.getPosts();
-    const newPosts = posts.map(post => post.id === updatedPost.id ? updatedPost : post);
-    localStorage.setItem(POSTS_KEY, JSON.stringify(newPosts));
-    return newPosts;
-  },
-
-  deletePost: (id: string): Post[] => {
-    const posts = storageService.getPosts().filter((p) => p.id !== id);
-    localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
-    return posts;
-  },
-
-  getCategories: (): Category[] => {
-    const data = localStorage.getItem(CATEGORIES_KEY);
-    if (!data) {
-      localStorage.setItem(CATEGORIES_KEY, JSON.stringify(INITIAL_CATEGORIES));
-      return INITIAL_CATEGORIES;
+  savePost: async (post: Post): Promise<Post[]> => {
+    try {
+      await addDoc(collection(db, 'posts'), post);
+      return await storageService.getPosts();
+    } catch (error) {
+      console.error('Error saving post:', error);
+      return [];
     }
-    return JSON.parse(data);
   },
 
-  saveCategory: (category: Category): Category[] => {
-    const categories = storageService.getCategories();
-    const newCategories = [...categories, category];
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(newCategories));
-    return newCategories;
+  updatePost: async (updatedPost: Post): Promise<Post[]> => {
+    try {
+      const postRef = doc(db, 'posts', updatedPost.id);
+      await updateDoc(postRef, { ...updatedPost });
+      return await storageService.getPosts();
+    } catch (error) {
+      console.error('Error updating post:', error);
+      return [];
+    }
   },
 
-  deleteCategory: (id: string): Category[] => {
-    const categories = storageService.getCategories().filter((c) => c.id !== id);
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
-    return categories;
+  deletePost: async (id: string): Promise<Post[]> => {
+    try {
+      await deleteDoc(doc(db, 'posts', id));
+      return await storageService.getPosts();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      return [];
+    }
+  },
+
+  getCategories: async (): Promise<Category[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'categories'));
+      if (querySnapshot.empty) {
+        // Initialize with default categories
+        for (const category of INITIAL_CATEGORIES) {
+          await addDoc(collection(db, 'categories'), category);
+        }
+        return INITIAL_CATEGORIES;
+      }
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+    } catch (error) {
+      console.error('Error getting categories:', error);
+      return [];
+    }
+  },
+
+  saveCategory: async (category: Category): Promise<Category[]> => {
+    try {
+      await addDoc(collection(db, 'categories'), category);
+      return await storageService.getCategories();
+    } catch (error) {
+      console.error('Error saving category:', error);
+      return [];
+    }
+  },
+
+  deleteCategory: async (id: string): Promise<Category[]> => {
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+      return await storageService.getCategories();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      return [];
+    }
   },
 };
