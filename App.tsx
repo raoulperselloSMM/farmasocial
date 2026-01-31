@@ -255,7 +255,7 @@ const App: React.FC = () => {
   };
 
   // --- FILTERING ---
-  const filteredPosts = posts.filter(post => {
+  const filteredPosts = (posts || []).filter(post => {
     const matchesCategory = selectedCategory === 'all' || post.categoryId === selectedCategory;
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           post.content.toLowerCase().includes(searchQuery.toLowerCase());
