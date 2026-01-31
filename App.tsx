@@ -56,9 +56,15 @@ const App: React.FC = () => {
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    setPosts(storageService.getPosts());
-    setCategories(storageService.getCategories());
+    const loadData = async () => {
+      const loadedPosts = await storageService.getPosts();
+      const loadedCategories = await storageService.getCategories();
+      setPosts(loadedPosts);
+      setCategories(loadedCategories);
+    };
+    loadData();
   }, []);
+
 
   // --- ACTIONS ---
 
